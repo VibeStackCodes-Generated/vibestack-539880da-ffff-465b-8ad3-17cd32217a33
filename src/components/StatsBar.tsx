@@ -1,5 +1,4 @@
-import { Webcam, CONTINENTS } from '@/lib/webcam-data';
-import { Globe, Camera, MapPin, Users } from 'lucide-react';
+import { Webcam } from '@/lib/webcam-data';
 
 interface StatsBarProps {
   webcams: Webcam[];
@@ -11,23 +10,20 @@ export function StatsBar({ webcams }: StatsBarProps) {
   const userAdded = webcams.filter(c => c.isUserAdded).length;
 
   const stats = [
-    { icon: Camera, label: 'Live Cameras', value: webcams.length, color: 'text-primary' },
-    { icon: MapPin, label: 'Countries', value: countries, color: 'text-accent' },
-    { icon: Globe, label: 'Continents', value: continents, color: 'text-chart-3' },
-    { icon: Users, label: 'Custom Cams', value: userAdded, color: 'text-chart-4' },
+    { label: 'FEEDS', value: webcams.length },
+    { label: 'COUNTRIES', value: countries },
+    { label: 'CONTINENTS', value: continents },
+    { label: 'CUSTOM', value: userAdded },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {stats.map(stat => (
-        <div
-          key={stat.label}
-          className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30"
-        >
-          <stat.icon className={`w-5 h-5 ${stat.color}`} />
+    <div className="flex items-center gap-6 md:gap-8">
+      {stats.map((stat, i) => (
+        <div key={stat.label} className="flex items-center gap-3">
+          {i > 0 && <div className="w-px h-6 bg-[hsl(0,0%,12%)]" />}
           <div>
-            <p className="text-lg font-bold text-foreground">{stat.value}</p>
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
+            <p className="text-lg md:text-xl font-bold text-white font-mono tabular-nums">{stat.value}</p>
+            <p className="text-[9px] font-mono text-[hsl(0,0%,35%)] uppercase tracking-[0.2em]">{stat.label}</p>
           </div>
         </div>
       ))}

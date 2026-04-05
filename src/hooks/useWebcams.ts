@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Webcam, DEFAULT_WEBCAMS } from '@/lib/webcam-data';
 
-const STORAGE_KEY = 'worldcam-user-webcams';
+const STORAGE_KEY = 'worldcam-user-cams-v2';
 
 function loadUserWebcams(): Webcam[] {
   try {
@@ -25,11 +25,12 @@ export function useWebcams() {
 
   const filteredWebcams = allWebcams.filter(cam => {
     const matchesContinent = filter === 'All' || cam.continent === filter;
-    const matchesSearch = searchQuery === '' || 
-      cam.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cam.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cam.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cam.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = q === '' ||
+      cam.city.toLowerCase().includes(q) ||
+      cam.country.toLowerCase().includes(q) ||
+      cam.description.toLowerCase().includes(q) ||
+      cam.tags.some(tag => tag.toLowerCase().includes(q));
     return matchesContinent && matchesSearch;
   });
 

@@ -1,5 +1,6 @@
 import { Webcam } from '@/lib/webcam-data';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 interface WorldMapProps {
   webcams: Webcam[];
@@ -7,71 +8,82 @@ interface WorldMapProps {
 }
 
 export function WorldMap({ webcams, onSelect }: WorldMapProps) {
-  // Convert lat/lng to x/y on a simple equirectangular projection
-  const toXY = (lat: number, lng: number) => {
-    const x = ((lng + 180) / 360) * 100;
-    const y = ((90 - lat) / 180) * 100;
-    return { x, y };
-  };
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  // Google Maps embed (no API key needed for basic /maps?output=embed)
+  const mapUrl = `https://www.google.com/maps/@20,0,2.5z/data=!5m1!1e4?entry=ttu`;
 
   return (
-    <div className="relative w-full aspect-[2.5/1] bg-muted/30 rounded-xl border border-border/30 overflow-hidden">
-      {/* Simple world outline using dots */}
-      <svg
-        viewBox="0 0 100 50"
-        className="absolute inset-0 w-full h-full opacity-20"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        {/* Grid lines */}
-        {[...Array(7)].map((_, i) => (
-          <line
-            key={`h-${i}`}
-            x1="0" y1={i * 8.33}
-            x2="100" y2={i * 8.33}
-            stroke="currentColor"
-            strokeWidth="0.1"
-            className="text-border"
-          />
-        ))}
-        {[...Array(13)].map((_, i) => (
-          <line
-            key={`v-${i}`}
-            x1={i * 8.33} y1="0"
-            x2={i * 8.33} y2="50"
-            stroke="currentColor"
-            strokeWidth="0.1"
-            className="text-border"
-          />
-        ))}
-      </svg>
+    <div className="relative w-full">
+      {/* Google Maps Embed */}
+      <div className="relative w-full aspect-[2.8/1] overflow-hidden border border-[hsl(0,0%,12%)] bg-black">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d63000000!2d10!3d25!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f2!5e1!3m2!1sen!2sus"
+          className="w-full h-full"
+          style={{ border: 'none', filter: 'saturate(0.15) brightness(0.45) contrast(1.3)' }}
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="World map showing webcam locations"
+        />
 
-      {/* Webcam dots */}
-      {webcams.map((cam) => {
-        if (!cam.lat && !cam.lng) return null;
-        const { x, y } = toXY(cam.lat, cam.lng);
-        return (
-          <motion.button
-            key={cam.id}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute group"
-            style={{ left: `${x}%`, top: `${y * 2}%`, transform: 'translate(-50%, -50%)' }}
-            onClick={() => onSelect(cam)}
-            title={`${cam.city}, ${cam.country}`}
-          >
-            <span className="block w-3 h-3 bg-primary rounded-full shadow-lg shadow-primary/40 group-hover:scale-150 transition-transform" />
-            <span className="absolute w-6 h-6 -inset-1.5 bg-primary/20 rounded-full animate-ping" />
-            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-medium text-foreground/70 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-              {cam.city}
-            </span>
-          </motion.button>
-        );
-      })}
+        {/* Overlay dots for each webcam */}
+        {webcams.filter(c => c.lat !== 0 || c.lng !== 0).map((cam) => {
+          // Convert lat/lng to percentage position on the map
+          // This is approximate for the satellite view centered at 25,10 zoom 2
+          const x = ((cam.lng + 180) / 360) * 100;
+          const y = ((90 - cam.lat) / 180) * 100;
 
-      {/* Legend */}
-      <div className="absolute bottom-2 right-3 flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="w-2 h-2 bg-primary rounded-full" />
-        <span>Live Camera</span>
+          return (
+            <motion.button
+              key={cam.id}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: Math.random() * 0.5, duration: 0.4 }}
+              className="absolute z-10 group/dot"
+              style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
+              onClick={() => onSelect(cam)}
+              onMouseEnter={() => setHoveredId(cam.id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              {/* Ping ring */}
+              <span className="absolute inset-0 w-5 h-5 -m-1 bg-red-500/20 rounded-full animate-ping" />
+              {/* Dot */}
+              <span className="relative block w-3 h-3 bg-red-500 rounded-full border border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.5)] group-hover/dot:scale-150 transition-transform" />
+              {/* Tooltip */}
+              {hoveredId === cam.id && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-black/90 border border-[hsl(0,0%,20%)] whitespace-nowrap z-20"
+                >
+                  <span className="text-[10px] font-mono text-white font-bold">{cam.city}</span>
+                  <span className="text-[10px] font-mono text-[hsl(0,0%,40%)] ml-1.5">{cam.country}</span>
+                </motion.div>
+              )}
+            </motion.button>
+          );
+        })}
+
+        {/* Scanline effect */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent animate-scanline" />
+        </div>
+
+        {/* Corner brackets */}
+        <div className="absolute top-2 left-2 w-4 h-4 border-t border-l border-red-500/40 pointer-events-none" />
+        <div className="absolute top-2 right-2 w-4 h-4 border-t border-r border-red-500/40 pointer-events-none" />
+        <div className="absolute bottom-2 left-2 w-4 h-4 border-b border-l border-red-500/40 pointer-events-none" />
+        <div className="absolute bottom-2 right-2 w-4 h-4 border-b border-r border-red-500/40 pointer-events-none" />
+
+        {/* Map label */}
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 pointer-events-none">
+          <span className="text-[9px] font-mono text-red-500/60 uppercase tracking-[0.2em]">Global Feed Network</span>
+        </div>
+        <div className="absolute top-3 right-3 flex items-center gap-2 pointer-events-none">
+          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-live-pulse" />
+          <span className="text-[9px] font-mono text-red-400/70 uppercase tracking-[0.15em]">{webcams.length} Active</span>
+        </div>
       </div>
     </div>
   );

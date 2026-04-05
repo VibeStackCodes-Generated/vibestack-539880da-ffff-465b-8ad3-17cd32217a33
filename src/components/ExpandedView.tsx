@@ -1,7 +1,5 @@
-import { Webcam, getLocalTime, isDayTime, getExpandedEmbedUrl } from '@/lib/webcam-data';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { X, MapPin, Clock, Sun, Moon, Globe } from 'lucide-react';
+import { Webcam, getLocalTime, isDayTime } from '@/lib/webcam-data';
+import { X, MapPin, Clock, Sun, Moon, Globe, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ExpandedViewProps {
@@ -14,29 +12,11 @@ export function ExpandedView({ webcam, onClose }: ExpandedViewProps) {
 
   const localTime = getLocalTime(webcam.timezone);
   const isDay = isDayTime(webcam.timezone);
-
-  const renderContent = () => {
-    if (webcam.source === 'image') {
-      return (
-        <img
-          src={`${webcam.sourceId}?t=${Date.now()}`}
-          alt={`${webcam.city} live webcam`}
-          className="w-full h-full object-contain"
-        />
-      );
-    }
-    const embedUrl = getExpandedEmbedUrl(webcam);
-    return (
-      <iframe
-        src={embedUrl}
-        className="w-full h-full"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        title={`${webcam.city} live webcam expanded`}
-        style={{ border: 'none' }}
-      />
-    );
-  };
+  // Switch to autoplay with sound for expanded view
+  const expandedUrl = webcam.embedUrl
+    .replace('autoplay=0', 'autoplay=1')
+    .replace('mute=1', 'mute=0');
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(webcam.youtubeSearch)}&sp=EgJAAQ%253D%253D`;
 
   return (
     <AnimatePresence>
@@ -44,67 +24,72 @@ export function ExpandedView({ webcam, onClose }: ExpandedViewProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
+        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.92, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-6xl"
+          exit={{ scale: 0.92, opacity: 0 }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          className="w-full max-w-7xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Badge className="bg-red-600 text-white border-0 gap-1.5 px-3 py-1.5">
-                <span className="w-2 h-2 bg-white rounded-full animate-live-pulse" />
-                LIVE
-              </Badge>
-              <h2 className="text-xl md:text-2xl font-bold text-white">
-                {webcam.city}, {webcam.country}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-live-pulse" />
+                <span className="text-xs font-mono font-bold text-red-400 tracking-[0.2em] uppercase">LIVE</span>
+              </div>
+              <div className="h-4 w-px bg-[hsl(0,0%,20%)]" />
+              <h2 className="text-lg md:text-xl font-semibold text-white tracking-wide">
+                {webcam.city}
+                <span className="text-[hsl(0,0%,40%)] font-light ml-2">{webcam.country}</span>
               </h2>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/10"
+            <button
+              className="w-10 h-10 flex items-center justify-center hover:bg-white/5 transition-colors border border-[hsl(0,0%,15%)]"
               onClick={onClose}
             >
-              <X className="w-6 h-6" />
-            </Button>
+              <X className="w-5 h-5 text-white/60" />
+            </button>
           </div>
 
           {/* Video */}
-          <div className="relative aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
-            {renderContent()}
+          <div className="relative aspect-video bg-black border border-[hsl(0,0%,12%)] overflow-hidden">
+            <iframe
+              src={expandedUrl}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={`${webcam.city} live webcam expanded`}
+              style={{ border: 'none' }}
+            />
           </div>
 
           {/* Info Bar */}
-          <div className="flex flex-wrap items-center gap-4 mt-4 text-white/70">
-            <p className="text-white/90">{webcam.description}</p>
-            <div className="flex items-center gap-1.5 text-sm">
-              <MapPin className="w-4 h-4" />
+          <div className="flex flex-wrap items-center gap-5 mt-4 font-mono text-xs text-[hsl(0,0%,40%)]">
+            <span className="text-white/70">{webcam.description}</span>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5" />
               <span>{webcam.continent}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-sm">
-              <Clock className="w-4 h-4" />
-              <span>Local time: {localTime}</span>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{localTime}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-sm">
+            <div className="flex items-center gap-1.5">
               {isDay ? (
-                <><Sun className="w-4 h-4 text-amber-400" /> <span>Daytime</span></>
+                <><Sun className="w-3.5 h-3.5 text-amber-500/60" /> <span>Daytime</span></>
               ) : (
-                <><Moon className="w-4 h-4 text-indigo-300" /> <span>Nighttime</span></>
+                <><Moon className="w-3.5 h-3.5 text-indigo-400/60" /> <span>Nighttime</span></>
               )}
             </div>
-            {webcam.lat !== 0 && (
-              <div className="flex items-center gap-1.5 text-sm">
-                <Globe className="w-4 h-4" />
-                <span>{webcam.lat.toFixed(2)}°, {webcam.lng.toFixed(2)}°</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5" />
+              <span>{webcam.lat.toFixed(2)}°, {webcam.lng.toFixed(2)}°</span>
+            </div>
           </div>
         </motion.div>
       </motion.div>

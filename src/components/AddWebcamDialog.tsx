@@ -8,12 +8,11 @@ import {
   DialogTrigger,
   DialogFooter
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Webcam, CONTINENTS, parseYouTubeInput } from '@/lib/webcam-data';
-import { Plus, Video, AlertCircle, Info } from 'lucide-react';
+import { Webcam, CONTINENTS, parseYouTubeUrl } from '@/lib/webcam-data';
+import { Plus, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AddWebcamDialogProps {
@@ -31,18 +30,12 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
   const [error, setError] = useState('');
 
   const handleSubmit = () => {
-    if (!city.trim()) {
-      setError('City name is required');
-      return;
-    }
-    if (!sourceInput.trim()) {
-      setError('YouTube URL is required');
-      return;
-    }
+    if (!city.trim()) { setError('City name is required'); return; }
+    if (!sourceInput.trim()) { setError('YouTube URL is required'); return; }
 
-    const videoId = parseYouTubeInput(sourceInput);
+    const videoId = parseYouTubeUrl(sourceInput);
     if (!videoId) {
-      setError('Invalid YouTube URL. Paste a YouTube live stream URL (e.g. youtube.com/watch?v=...) or an 11-character video ID.');
+      setError('Invalid YouTube URL. Paste a YouTube live stream URL or 11-character video ID.');
       return;
     }
 
@@ -50,9 +43,10 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
       id: `user-${Date.now()}`,
       city: city.trim(),
       country: country.trim() || 'Unknown',
+      countryCode: '--',
       description: description.trim() || `Live webcam from ${city.trim()}`,
-      source: 'youtube',
-      sourceId: videoId,
+      embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1&rel=0&modestbranding=1&controls=1`,
+      youtubeSearch: `${city.trim()} live cam`,
       continent,
       timezone,
       lat: 0,
@@ -62,141 +56,120 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
     };
 
     onAdd(webcam);
-    toast.success(`Added ${city} webcam!`, {
-      description: 'Your webcam has been added to the grid.'
-    });
-
-    setCity('');
-    setCountry('');
-    setDescription('');
-    setSourceInput('');
-    setContinent('Europe');
-    setTimezone('UTC');
-    setError('');
-    setOpen(false);
+    toast.success(`${city} webcam added`, { description: 'Stream is now in your grid.' });
+    setCity(''); setCountry(''); setDescription(''); setSourceInput('');
+    setContinent('Europe'); setTimezone('UTC'); setError(''); setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Plus className="w-4 h-4" />
-          Add Webcam
-        </Button>
+        <button className="flex items-center gap-2 px-4 py-2 bg-white text-black text-xs font-mono font-bold uppercase tracking-[0.15em] hover:bg-white/90 transition-colors">
+          <Plus className="w-3.5 h-3.5" />
+          Add Camera
+        </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg bg-card border-border">
+      <DialogContent className="sm:max-w-lg bg-[hsl(0,0%,6%)] border-[hsl(0,0%,14%)]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-foreground">
-            <Video className="w-5 h-5 text-primary" />
-            Add a Live Webcam
+          <DialogTitle className="font-mono text-sm uppercase tracking-[0.15em] text-white">
+            Add Live Camera
           </DialogTitle>
-          <DialogDescription>
-            Add any city's live webcam by pasting a YouTube live stream URL.
+          <DialogDescription className="text-[hsl(0,0%,40%)] text-xs">
+            Paste a YouTube live stream URL to add a new camera feed.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="flex items-center gap-2 p-3 bg-red-950/30 border border-red-500/20 text-red-400 text-xs font-mono">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               {error}
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="source">YouTube Live Stream URL *</Label>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-mono uppercase tracking-[0.15em] text-[hsl(0,0%,45%)]">YouTube URL *</Label>
             <Input
-              id="source"
-              placeholder="https://youtube.com/watch?v=... or youtube.com/live/..."
+              placeholder="https://youtube.com/watch?v=... or video ID"
               value={sourceInput}
               onChange={(e) => { setSourceInput(e.target.value); setError(''); }}
-              className="bg-muted border-border"
+              className="bg-black border-[hsl(0,0%,14%)] font-mono text-xs h-9 focus:border-red-500/50 focus:ring-red-500/20"
             />
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/10">
-              <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>
-                  <strong className="text-foreground">How to find a live webcam:</strong>
-                </p>
-                <ol className="list-decimal list-inside space-y-0.5">
-                  <li>Go to YouTube and search for "<strong>{city || 'city name'} live cam</strong>"</li>
-                  <li>Click <strong>Filters → Live</strong> to show only live streams</li>
-                  <li>Open a live stream and copy the URL from your browser</li>
-                  <li>Paste it above!</li>
-                </ol>
-              </div>
-            </div>
+            <p className="text-[10px] text-[hsl(0,0%,30%)] font-mono leading-relaxed mt-1.5">
+              Search YouTube for "<span className="text-[hsl(0,0%,50%)]">{city || 'city'} live cam</span>" → Filter by Live → Copy URL
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City Name *</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-mono uppercase tracking-[0.15em] text-[hsl(0,0%,45%)]">City *</Label>
               <Input
-                id="city"
-                placeholder="e.g. Barcelona"
+                placeholder="Barcelona"
                 value={city}
                 onChange={(e) => { setCity(e.target.value); setError(''); }}
-                className="bg-muted border-border"
+                className="bg-black border-[hsl(0,0%,14%)] font-mono text-xs h-9 focus:border-red-500/50 focus:ring-red-500/20"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-mono uppercase tracking-[0.15em] text-[hsl(0,0%,45%)]">Country</Label>
               <Input
-                id="country"
-                placeholder="e.g. Spain"
+                placeholder="Spain"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="bg-muted border-border"
+                className="bg-black border-[hsl(0,0%,14%)] font-mono text-xs h-9 focus:border-red-500/50 focus:ring-red-500/20"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-mono uppercase tracking-[0.15em] text-[hsl(0,0%,45%)]">Description</Label>
             <Input
-              id="description"
-              placeholder="e.g. La Rambla street view"
+              placeholder="La Rambla street view"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-muted border-border"
+              className="bg-black border-[hsl(0,0%,14%)] font-mono text-xs h-9 focus:border-red-500/50 focus:ring-red-500/20"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Continent</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-mono uppercase tracking-[0.15em] text-[hsl(0,0%,45%)]">Continent</Label>
               <Select value={continent} onValueChange={setContinent}>
-                <SelectTrigger className="bg-muted border-border">
+                <SelectTrigger className="bg-black border-[hsl(0,0%,14%)] font-mono text-xs h-9">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[hsl(0,0%,6%)] border-[hsl(0,0%,14%)]">
                   {CONTINENTS.filter(c => c !== 'All').map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                    <SelectItem key={c} value={c} className="font-mono text-xs">{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-mono uppercase tracking-[0.15em] text-[hsl(0,0%,45%)]">Timezone</Label>
               <Input
-                id="timezone"
-                placeholder="e.g. Europe/Madrid"
+                placeholder="Europe/Madrid"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="bg-muted border-border"
+                className="bg-black border-[hsl(0,0%,14%)] font-mono text-xs h-9 focus:border-red-500/50 focus:ring-red-500/20"
               />
             </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+        <DialogFooter className="gap-2">
+          <button
+            onClick={() => setOpen(false)}
+            className="px-4 py-2 text-xs font-mono uppercase tracking-[0.1em] text-[hsl(0,0%,50%)] hover:text-white border border-[hsl(0,0%,14%)] hover:border-[hsl(0,0%,25%)] transition-all"
+          >
             Cancel
-          </Button>
-          <Button onClick={handleSubmit} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Webcam
-          </Button>
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-mono font-bold uppercase tracking-[0.15em] transition-colors"
+          >
+            Add Camera
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
