@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Webcam, CONTINENTS, parseYouTubeInput } from '@/lib/webcam-data';
-import { Plus, Video, AlertCircle } from 'lucide-react';
+import { Plus, Video, AlertCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AddWebcamDialogProps {
@@ -25,20 +25,24 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
   const [description, setDescription] = useState('');
-  const [youtubeInput, setYoutubeInput] = useState('');
+  const [sourceInput, setSourceInput] = useState('');
   const [continent, setContinent] = useState('Europe');
   const [timezone, setTimezone] = useState('UTC');
   const [error, setError] = useState('');
 
   const handleSubmit = () => {
-    if (!city.trim() || !youtubeInput.trim()) {
-      setError('City name and YouTube URL are required');
+    if (!city.trim()) {
+      setError('City name is required');
+      return;
+    }
+    if (!sourceInput.trim()) {
+      setError('YouTube URL is required');
       return;
     }
 
-    const parsed = parseYouTubeInput(youtubeInput);
-    if (!parsed) {
-      setError('Invalid YouTube URL or ID. Paste a YouTube video URL, channel URL, or video/channel ID.');
+    const videoId = parseYouTubeInput(sourceInput);
+    if (!videoId) {
+      setError('Invalid YouTube URL. Paste a YouTube live stream URL (e.g. youtube.com/watch?v=...) or an 11-character video ID.');
       return;
     }
 
@@ -47,8 +51,8 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
       city: city.trim(),
       country: country.trim() || 'Unknown',
       description: description.trim() || `Live webcam from ${city.trim()}`,
-      youtubeId: parsed.id,
-      type: parsed.type,
+      source: 'youtube',
+      sourceId: videoId,
       continent,
       timezone,
       lat: 0,
@@ -62,11 +66,10 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
       description: 'Your webcam has been added to the grid.'
     });
 
-    // Reset form
     setCity('');
     setCountry('');
     setDescription('');
-    setYoutubeInput('');
+    setSourceInput('');
     setContinent('Europe');
     setTimezone('UTC');
     setError('');
@@ -88,7 +91,7 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
             Add a Live Webcam
           </DialogTitle>
           <DialogDescription>
-            Add any city's live webcam by pasting a YouTube live stream URL or channel ID.
+            Add any city's live webcam by pasting a YouTube live stream URL.
           </DialogDescription>
         </DialogHeader>
 
@@ -101,17 +104,28 @@ export function AddWebcamDialog({ onAdd }: AddWebcamDialogProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="youtube">YouTube URL or Channel ID *</Label>
+            <Label htmlFor="source">YouTube Live Stream URL *</Label>
             <Input
-              id="youtube"
-              placeholder="https://youtube.com/watch?v=... or UC..."
-              value={youtubeInput}
-              onChange={(e) => { setYoutubeInput(e.target.value); setError(''); }}
+              id="source"
+              placeholder="https://youtube.com/watch?v=... or youtube.com/live/..."
+              value={sourceInput}
+              onChange={(e) => { setSourceInput(e.target.value); setError(''); }}
               className="bg-muted border-border"
             />
-            <p className="text-xs text-muted-foreground">
-              Supports video URLs, channel URLs, video IDs, and channel IDs (UC...)
-            </p>
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/10">
+              <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>
+                  <strong className="text-foreground">How to find a live webcam:</strong>
+                </p>
+                <ol className="list-decimal list-inside space-y-0.5">
+                  <li>Go to YouTube and search for "<strong>{city || 'city name'} live cam</strong>"</li>
+                  <li>Click <strong>Filters → Live</strong> to show only live streams</li>
+                  <li>Open a live stream and copy the URL from your browser</li>
+                  <li>Paste it above!</li>
+                </ol>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

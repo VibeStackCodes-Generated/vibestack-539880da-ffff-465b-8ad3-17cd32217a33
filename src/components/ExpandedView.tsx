@@ -1,7 +1,7 @@
-import { Webcam, getLocalTime, isDayTime } from '@/lib/webcam-data';
+import { Webcam, getLocalTime, isDayTime, getExpandedEmbedUrl } from '@/lib/webcam-data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, MapPin, Clock, Sun, Moon, Globe, ExternalLink } from 'lucide-react';
+import { X, MapPin, Clock, Sun, Moon, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ExpandedViewProps {
@@ -15,13 +15,28 @@ export function ExpandedView({ webcam, onClose }: ExpandedViewProps) {
   const localTime = getLocalTime(webcam.timezone);
   const isDay = isDayTime(webcam.timezone);
 
-  const embedUrl = webcam.type === 'channel'
-    ? `https://www.youtube.com/embed/live_stream?channel=${webcam.youtubeId}&autoplay=1&mute=0`
-    : `https://www.youtube.com/embed/${webcam.youtubeId}?autoplay=1&mute=0`;
-
-  const youtubeLink = webcam.type === 'channel'
-    ? `https://www.youtube.com/channel/${webcam.youtubeId}/live`
-    : `https://www.youtube.com/watch?v=${webcam.youtubeId}`;
+  const renderContent = () => {
+    if (webcam.source === 'image') {
+      return (
+        <img
+          src={`${webcam.sourceId}?t=${Date.now()}`}
+          alt={`${webcam.city} live webcam`}
+          className="w-full h-full object-contain"
+        />
+      );
+    }
+    const embedUrl = getExpandedEmbedUrl(webcam);
+    return (
+      <iframe
+        src={embedUrl}
+        className="w-full h-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        title={`${webcam.city} live webcam expanded`}
+        style={{ border: 'none' }}
+      />
+    );
+  };
 
   return (
     <AnimatePresence>
@@ -40,7 +55,7 @@ export function ExpandedView({ webcam, onClose }: ExpandedViewProps) {
           className="w-full max-w-6xl"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close Button */}
+          {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Badge className="bg-red-600 text-white border-0 gap-1.5 px-3 py-1.5">
@@ -51,38 +66,19 @@ export function ExpandedView({ webcam, onClose }: ExpandedViewProps) {
                 {webcam.city}, {webcam.country}
               </h2>
             </div>
-            <div className="flex items-center gap-2">
-              <a
-                href={youtubeLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex"
-              >
-                <Button variant="outline" size="sm" className="gap-2 border-white/20 text-white hover:bg-white/10">
-                  <ExternalLink className="w-4 h-4" />
-                  YouTube
-                </Button>
-              </a>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/10"
-                onClick={onClose}
-              >
-                <X className="w-6 h-6" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/10"
+              onClick={onClose}
+            >
+              <X className="w-6 h-6" />
+            </Button>
           </div>
 
           {/* Video */}
           <div className="relative aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
-            <iframe
-              src={embedUrl}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title={`${webcam.city} live webcam expanded`}
-            />
+            {renderContent()}
           </div>
 
           {/* Info Bar */}
@@ -103,10 +99,12 @@ export function ExpandedView({ webcam, onClose }: ExpandedViewProps) {
                 <><Moon className="w-4 h-4 text-indigo-300" /> <span>Nighttime</span></>
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-sm">
-              <Globe className="w-4 h-4" />
-              <span>{webcam.lat.toFixed(2)}°, {webcam.lng.toFixed(2)}°</span>
-            </div>
+            {webcam.lat !== 0 && (
+              <div className="flex items-center gap-1.5 text-sm">
+                <Globe className="w-4 h-4" />
+                <span>{webcam.lat.toFixed(2)}°, {webcam.lng.toFixed(2)}°</span>
+              </div>
+            )}
           </div>
         </motion.div>
       </motion.div>
